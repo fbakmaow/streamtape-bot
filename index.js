@@ -1,11 +1,29 @@
 const express = require('express');
-const puppeteer = require('puppeteer-extra'); // Changed to puppeteer-extra using standard puppeteer underneath
+const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const fs = require('fs'); // Added to check for available browser paths
 
 puppeteer.use(StealthPlugin());
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Function to find the available browser path on Hostinger Linux server
+function getExecutablePath() {
+    const possiblePaths = [
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/usr/bin/chrome'
+    ];
+
+    for (const path of possiblePaths) {
+        if (fs.existsSync(path)) {
+            return path;
+        }
+    }
+    return null; // Return null if no path is found, letting puppeteer try its default
+}
 
 app.get('/', (req, res) => {
     res.send('Streamtape Extractor API is running perfectly!');
@@ -20,9 +38,12 @@ app.get('/extract', async (req, res) => {
 
     let browser = null;
     try {
-        // Updated launch settings for automated hostinger standalone environment
+        const chromePath = getExecutablePath();
+        
+        // Hostinger optimized launch configurations
         browser = await puppeteer.launch({
             headless: true,
+            executablePath: chromePath || undefined, // Injecting Hostinger system chrome path if found
             args: [
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
